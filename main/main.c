@@ -44,29 +44,32 @@ char *rick_ssids[] = {
 	"08 and hurt you"
 };
 
-#define BEACON_SSID_OFFSET 38
-#define SRCADDR_OFFSET 10
-#define BSSID_OFFSET 16
-#define SEQNUM_OFFSET 22
-#define TOTAL_LINES (sizeof(rick_ssids) / sizeof(char *))
+enum { BEACON_SSID_OFFSET = 38 };
+enum { SRCADDR_OFFSET = 10 };
+enum { BSSID_OFFSET = 16 };
+enum { SEQNUM_OFFSET = 22 };
+enum { TOTAL_LINES = sizeof(rick_ssids) / sizeof(char *) };
 
 void spam_task(void *pvParameter) {
 	uint8_t line = 0;
+	char *current_ssid;
 
 	// Keep track of beacon sequence numbers on a per-songline-basis
 	uint16_t seqnum[TOTAL_LINES] = { 0 };
 
 	for (;;) {
 		vTaskDelay(100 / TOTAL_LINES / portTICK_PERIOD_MS);
-
+		
+		current_ssid = rick_ssids[line];
+			
 		// Insert line of Rick Astley's "Never Gonna Give You Up" into beacon packet
-		printf("%i %i %s\r\n", strlen(rick_ssids[line]), TOTAL_LINES, rick_ssids[line]);
+		printf("%i %i %s\r\n", strlen(current_ssid), TOTAL_LINES, current_ssid);
 
 		uint8_t beacon_rick[200];
 		memcpy(beacon_rick, beacon_raw, BEACON_SSID_OFFSET - 1);
-		beacon_rick[BEACON_SSID_OFFSET - 1] = strlen(rick_ssids[line]);
-		memcpy(&beacon_rick[BEACON_SSID_OFFSET], rick_ssids[line], strlen(rick_ssids[line]));
-		memcpy(&beacon_rick[BEACON_SSID_OFFSET + strlen(rick_ssids[line])], &beacon_raw[BEACON_SSID_OFFSET], sizeof(beacon_raw) - BEACON_SSID_OFFSET);
+		beacon_rick[BEACON_SSID_OFFSET - 1] = strlen(current_ssid);
+		memcpy(&beacon_rick[BEACON_SSID_OFFSET], current_ssid, strlen(current_ssid));
+		memcpy(&beacon_rick[BEACON_SSID_OFFSET + strlen(current_ssid)], &beacon_raw[BEACON_SSID_OFFSET], sizeof(beacon_raw) - BEACON_SSID_OFFSET);
 
 		// Last byte of source address / BSSID will be line number - emulate multiple APs broadcasting one song line each
 		beacon_rick[SRCADDR_OFFSET + 5] = line;
@@ -79,7 +82,7 @@ void spam_task(void *pvParameter) {
 		if (seqnum[line] > 0xfff)
 			seqnum[line] = 0;
 
-		esp_wifi_80211_tx(WIFI_IF_AP, beacon_rick, sizeof(beacon_raw) + strlen(rick_ssids[line]), false);
+		esp_wifi_80211_tx(WIFI_IF_AP, beacon_rick, sizeof(beacon_raw) + strlen(current_ssid), false);
 
 		if (++line >= TOTAL_LINES)
 			line = 0;
