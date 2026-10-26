@@ -48,7 +48,7 @@ enum { BEACON_SSID_OFFSET = 38 };
 enum { SRCADDR_OFFSET = 10 };
 enum { BSSID_OFFSET = 16 };
 enum { SEQNUM_OFFSET = 22 };
-enum { TOTAL_LINES = sizeof(rick_ssids) / sizeof(char *) };
+enum { TOTAL_LINES = sizeof(rick_ssids) / sizeof(rick_ssids[0]) };
 
 void spam_task(void *pvParameter) {
 	uint8_t line = 0;
